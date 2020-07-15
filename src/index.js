@@ -12,55 +12,26 @@ function Quadrado(props) {
 }
 
 class Tabuleiro extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            quadrados: Array(9).fill(null),
-            xIsNext: true,
-        };
-    }
-
-    gerenciaMarca(i) {
-        const quadrados = this.state.quadrados.slice();
-        if (calculaVencedor(quadrados) || quadrados[i]) {
-            return;
-        }
-        quadrados[i] = this.state.xIsNext ? 'X' : 'O';
-        this.setState({
-            quadrados: quadrados,
-            xIsNext: !this.state.xIsNext,
-        });
-    }
-
     renderizaQuadrados(i) {
-        return <Quadrado value={this.state.quadrados[i]}
-            clicaMarca={() => this.gerenciaMarca(i)}
+        return <Quadrado value={this.props.quadrados[i]}
+            clicaMarca={() => this.props.clicaMarca(i)}
         />
     }
 
     render() {
-        const vencedor = calculaVencedor(this.state.quadrados);
-        let status = 'Próximo Jogador: ' + (this.state.xIsNext ? 'X' : 'O');
-        if (vencedor) {
-            status = "Vencedor " + vencedor;
-        } else {
-            status = "Próximo jogaddor: " + (this.state.xIsNext ? 'X' : 'O');
-        }
-
         return (
             <div>
-                <div className="status">{status}</div>
-                <div className="tabuleiro-row">
+                <div className="linha-tabuleiro">
                     {this.renderizaQuadrados(0)}
                     {this.renderizaQuadrados(1)}
                     {this.renderizaQuadrados(2)}
                 </div>
-                <div className="tabuleiro-row">
+                <div className="linha-tabuleiro">
                     {this.renderizaQuadrados(3)}
                     {this.renderizaQuadrados(4)}
                     {this.renderizaQuadrados(5)}
                 </div>
-                <div className="tabuleiro-row">
+                <div className="linha-tabuleiro">
                     {this.renderizaQuadrados(6)}
                     {this.renderizaQuadrados(7)}
                     {this.renderizaQuadrados(8)}
@@ -71,15 +42,76 @@ class Tabuleiro extends React.Component {
 }
 
 class Jogo extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+
+            historico: [{
+                quadrados: Array(9).fill(null),
+            }],
+            numeroJogada: 0,
+            xIsNext: true,
+        }
+    }
+
+    gerenciaMarca(i) {
+        const historico = this.state.historico.slice(0, this.state.numeroJogada + 1);
+        const atual = historico[historico.length - 1];
+        const quadrados = atual.quadrados.slice();
+        if (calculaVencedor(quadrados) || quadrados[i]) {
+            return;
+        }
+        quadrados[i] = this.state.xIsNext ? 'X' : 'O';
+        this.setState({
+            historico: historico.concat([{
+                quadrados: quadrados,
+            }]),
+            numeroJogada: historico.length,
+            xIsNext: !this.state.xIsNext,
+        });
+    }
+
+    pularPara(jogada) {
+        this.setState({
+            numeroJogada: jogada,
+            xIsNext: (jogada % 2) === 0,
+        });
+    }
+
     render() {
+        const historico = this.state.historico;
+        const atual = historico[this.state.numeroJogada];
+        const vencedor = calculaVencedor(atual.quadrados);
+
+        const movimentos = historico.map((jogada, movimento) => {
+            const desc = movimento ?
+                'Ir para movimento #' + movimento :
+                'Ir para o inicio do jogo';
+            return (
+                <li key={movimento}>
+                    <button onClick={() => this.pularPara(movimento)}>{desc}</button>
+                </li>
+            )
+        })
+
+        let status;
+        if (vencedor) {
+            status = 'Vencedor: ' + vencedor;
+        } else {
+            status = 'Próximo Jogador: ' + (this.state.xIsNext ? 'X' : 'O');
+        }
+
         return (
             <div className="jogo">
                 <div className="jogo-board">
-                    <Tabuleiro />
+                    <Tabuleiro
+                        quadrados={atual.quadrados}
+                        clicaMarca={(i) => this.gerenciaMarca(i)}
+                    />
                 </div>
                 <div className="jogo-info">
-                    <div>{/* status */}</div>
-                    <ol>{/* TODO */}</ol>
+                    <div>{status}</div>
+                    <ol>{movimentos}</ol>
                 </div>
             </div>
         );
